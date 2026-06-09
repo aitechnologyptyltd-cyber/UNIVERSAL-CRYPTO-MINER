@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Universal Miner Pro — Unified Dashboard</title>
+<style>
+/* ── RESET & ROOT ── */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#00e676;--red:#ff5252;--yellow:#FFD600;--blue:#2979FF;
+  --orange:#FF6D00;--cyan:#00C8FF;--purple:#AA00FF;
+  --bg:#0a0a0a;--bg1:#111;--bg2:#161616;--bg3:#1a1a1a;--bg4:#222;
+  --dim:#555;--dim2:#333;--text:#e0e0e0;
+  --sidebar-w:220px;
+  --panel-speed:0.32s;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:'Courier New',monospace;display:flex;flex-direction:column}
+
+/* ── TOP HEADER ── */
+.header{
+  background:var(--bg1);border-bottom:2px solid var(--green);
+  padding:10px 18px;display:flex;align-items:center;gap:14px;flex-shrink:0;
+  z-index:200;position:relative;
+}
+.logo{color:var(--green);font-size:1rem;font-weight:bold;letter-spacing:3px;white-space:nowrap}
+.logo span{color:var(--dim);font-size:.6rem;letter-spacing:1px;display:block;margin-top:2px}
+.status-pill{
+  display:flex;align-items:center;gap:7px;background:var(--bg3);
+  padding:5px 12px;border-radius:2px;border:1px solid var(--dim2);font-size:.65rem;letter-spacing:1px;
+}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--dim2);transition:.4s;flex-shrink:0}
+.dot.active{background:var(--green);box-shadow:0 0 8px var(--green)}
+.dot.err{background:var(--red)}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.ver-tag{color:var(--dim);font-size:.6rem;letter-spacing:1px}
+
+/* ── BODY WRAPPER ── */
+.body-wrap{display:flex;flex:1;overflow:hidden;position:relative}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:var(--sidebar-w);flex-shrink:0;background:var(--bg1);
+  border-right:1px solid var(--bg3);display:flex;flex-direction:column;
+  overflow-y:auto;overflow-x:hidden;
+  transition:width var(--panel-speed) cubic-bezier(.4,0,.2,1);
+  z-index:100;
+}
+.sidebar.collapsed{width:52px}
+.sidebar-logo{
+  padding:14px 14px 10px;border-bottom:1px solid var(--bg3);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.sidebar-logo-text{color:var(--green);font-size:.65rem;letter-spacing:2px;opacity:1;transition:opacity .2s;white-space:nowrap;overflow:hidden}
+.sidebar.collapsed .sidebar-logo-text{opacity:0;width:0}
+.collapse-btn{
+  background:none;border:1px solid var(--bg3);color:var(--dim);
+  width:24px;height:24px;cursor:pointer;border-radius:2px;font-size:.75rem;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  transition:color .15s,border-color .15s;
+}
+.collapse-btn:hover{color:var(--green);border-color:var(--green)}
+
+.nav-section{padding:10px 0 4px}
+.nav-section-label{
+  color:var(--dim2);font-size:.55rem;letter-spacing:2px;text-transform:uppercase;
+  padding:0 14px 6px;white-space:nowrap;overflow:hidden;transition:opacity .2s;
+}
+.sidebar.collapsed .nav-section-label{opacity:0}
+
+.nav-btn{
+  display:flex;align-items:center;gap:10px;width:100%;
+  padding:9px 14px;border:none;background:none;
+  color:var(--dim);font-family:'Courier New',monospace;font-size:.72rem;
+  letter-spacing:1px;cursor:pointer;text-align:left;
+  border-left:2px solid transparent;
+  transition:all .15s;position:relative;white-space:nowrap;overflow:hidden;
+}
+.nav-btn:hover{background:var(--bg3);color:var(--text)}
+.nav-btn.active{
+  color:var(--green);border-left-color:var(--green);
+  background:linear-gradient(90deg,rgba(0,230,118,.07) 0%,transparent 100%);
+}
+.nav-btn.panel-open{color:var(--cyan);border-left-color:var(--cyan)}
+.nav-icon{font-size:.9rem;flex-shrink:0;width:18px;text-align:center}
+.nav-label{transition:opacity .15s;overflow:hidden}
+.sidebar.collapsed .nav-label{opacity:0;width:0}
+.nav-arrow{
+  margin-left:auto;font-size:.6rem;color:var(--dim2);flex-shrink:0;
+  transition:transform .25s,opacity .15s;
+}
+.nav-btn.panel-open .nav-arrow{transform:rotate(90deg);color:var(--cyan)}
+.sidebar.collapsed .nav-arrow{opacity:0}
+
+.sidebar-footer{
+  margin-top:auto;padding:14px;border-top:1px solid var(--bg3);
+  font-size:.58rem;color:var(--dim2);letter-spacing:1px;
+  white-space:nowrap;overflow:hidden;transition:opacity .2s;
+}
+.sidebar.collapsed .sidebar-footer{opacity:0}
+
+/* ── MAIN CONTENT ── */
+.main-area{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
+
+/* ── SLIDE PANELS ── */
+.panel-container{
+  position:relative;flex:1;overflow:hidden;display:flex;flex-direction:column;
+}
+.slide-panel{
+  position:absolute;top:0;left:0;right:0;bottom:0;
+  overflow-y:auto;overflow-x:hidden;
+  transform:translateX(100%);
+  transition:transform var(--panel-speed) cubic-bezier(.4,0,.2,1),opacity var(--panel-speed);
+  opacity:0;
+  will-change:transform,opacity;
+  background:var(--bg);
+}
+.slide-panel.active{
+  transform:translateX(0);
+  opacity:1;
+  position:relative;
+  flex:1;
+}
+.slide-panel.slide-left{
+  transform:translateX(-40%);
+  opacity:0;
+}
+
+/* ── PANEL HEADER ── */
+.panel-header{
+  background:var(--bg1);border-bottom:1px solid var(--bg3);
+  padding:12px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0;
+  position:sticky;top:0;z-index:50;
+}
+.panel-title{color:var(--green);font-size:.75rem;letter-spacing:3px;text-transform:uppercase;font-weight:bold}
+.panel-subtitle{color:var(--dim);font-size:.62rem;letter-spacing:1px;margin-top:2px}
+.panel-close{
+  margin-left:auto;background:none;border:1px solid var(--bg4);
+  color:var(--dim);padding:5px 12px;font-family:'Courier New',monospace;
+  font-size:.65rem;letter-spacing:1px;cursor:pointer;border-radius:2px;
+  transition:all .15s;
+}
+.panel-close:hover{border-color:var(--red);color:var(--red)}
+
+/* ── PANEL CONTENT ── */
+.panel-body{padding:18px 20px}
+
+/* ── TICKER ── */
+.ticker-bar{
+  background:var(--bg1);border-bottom:1px solid var(--bg3);
+  padding:5px 0;overflow:hidden;flex-shrink:0;
+}
+.ticker-inner{
+  display:flex;gap:28px;animation:ticker 35s linear infinite;width:max-content;
+}
+.ticker-inner:hover{animation-play-state:paused}
+@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.tick{display:flex;align-items:center;gap:5px;font-size:.65rem;white-space:nowrap}
+.tick-sym{color:var(--cyan);font-weight:bold;letter-spacing:1px}
+.tick-price{color:var(--text)}
+.tick-up{color:var(--green)}.tick-dn{color:var(--red)}
+
+/* ── HOME PANEL ── */
+.home-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.home-grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:14px}
+.home-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+@media(max-width:900px){.home-grid{grid-template-columns:repeat(2,1fr)}.home-grid-3{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.home-grid,.home-grid-2,.home-grid-3{grid-template-columns:1fr}}
+
+.card{background:var(--bg1);border:1px solid var(--bg3);border-radius:3px;padding:14px 16px}
+.card-lbl{color:var(--dim);font-size:.6rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
+.card-val{font-size:1.4rem;font-weight:bold;color:var(--green)}
+.card-val.blue{color:var(--blue)}.card-val.yellow{color:var(--yellow)}
+.card-val.cyan{color:var(--cyan)}.card-val.orange{color:var(--orange)}
+.card-sub{color:var(--dim2);font-size:.65rem;margin-top:4px}
+.eff-bar{height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;margin-top:8px}
+.eff-fill{height:100%;background:var(--green);border-radius:2px;transition:.5s}
+
+/* Controls */
+.ctrl-strip{
+  background:var(--bg1);border:1px solid var(--bg3);border-radius:3px;
+  padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+}
+.btn{padding:9px 20px;border:none;font-family:'Courier New',monospace;font-size:.75rem;letter-spacing:2px;cursor:pointer;border-radius:2px;text-transform:uppercase;font-weight:bold;transition:.15s}
+.btn-start{background:var(--green);color:#000}.btn-start:hover{background:#00ff88}
+.btn-stop{background:#1a0000;color:var(--red);border:1px solid var(--red)}.btn-stop:hover{background:var(--red);color:#000}
+.btn-sm{padding:5px 12px;font-size:.65rem}
+.btn-ghost{background:transparent;border:1px solid var(--bg4);color:var(--dim)}.btn-ghost:hover{border-color:var(--dim);color:var(--text)}
+.thr-row{display:flex;align-items:center;gap:8px}
+.thr-row label{color:var(--dim);font-size:.65rem;letter-spacing:1px}
+.thr-row input{background:var(--bg3);border:1px solid var(--bg4);color:var(--text);padding:6px 10px;font-family:'Courier New',monospace;font-size:.8rem;width:58px;border-radius:2px;outline:none}
+.thr-row input:focus{border-color:var(--green)}
+.ctrl-stat{font-size:.68rem;color:var(--dim);margin-left:auto}
+
+/* Algo buttons */
+.algo-strip{background:var(--bg1);border:1px solid var(--bg3);border-radius:3px;padding:10px 14px;margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.algo-btn{
+  background:var(--bg);border:2px solid var(--bg4);color:var(--dim);
+  font-family:'Courier New',monospace;font-size:.7rem;padding:7px 16px;
+  cursor:pointer;border-radius:2px;letter-spacing:2px;font-weight:bold;transition:.2s;text-transform:uppercase;
+}
+.algo-btn:hover{border-color:var(--dim);color:var(--text)}
+.algo-btn.active-randomx{border-color:var(--orange);color:var(--orange);background:#1a0d00;box-shadow:0 0 8px rgba(255,109,0,.2)}
+.algo-btn.active-x11{border-color:var(--cyan);color:var(--cyan);background:#001a20;box-shadow:0 0 8px rgba(0,200,255,.2)}
+.algo-info{font-size:.65rem;color:var(--dim);margin-left:auto}
+
+/* Chart */
+.chart-box{background:var(--bg1);border:1px solid var(--bg3);border-radius:3px;padding:14px 16px;margin-bottom:14px}
+.box-title{color:var(--dim);font-size:.62rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
+.chart-canvas{width:100%;height:100px;background:var(--bg);border-radius:2px;display:block}
+
+/* Profile bar */
+.profile-bar{background:var(--bg1);border:1px solid var(--bg3);border-radius:3px;padding:9px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.psel{background:var(--bg3);border:1px solid var(--bg4);color:var(--text);padding:5px 9px;font-family:'Courier New',monospace;font-size:.7rem;border-radius:2px;outline:none;cursor:pointer}
+.psel:focus{border-color:var(--green)}
+.badge{display:inline-block;padding:2px 7px;border-radius:2px;font-size:.62rem;letter-spacing:1px;font-weight:bold}
+.b-coin{background:#0a2a0a;border:1px solid var(--green);color:var(--green)}
+.b-pool{background:#0a0a2a;border:1px solid var(--blue);color:var(--blue)}
+
+/* Log */
+.log-panel{background:var(--bg);border:1px solid var(--bg3);border-radius:3px;padding:10px 12px;max-height:180px;overflow-y:auto;margin-bottom:14px}
+.log-panel pre{font-size:.65rem;line-height:1.8;color:var(--dim);white-space:pre-wrap;word-break:break-all}
+
+/* ── SETUP PANEL ── */
+.setup-wrap{display:grid;grid-template-columns:240px 1fr;min-height:400px;gap:0}
+@media(max-width:650px){.setup-wrap{grid-template-columns:1fr}}
+.setup-sidebar{background:var(--bg1);border-right:1px solid var(--bg3);padding:14px 0}
+.sec-tab{
+  padding:8px 16px;font-size:.68rem;letter-spacing:1px;cursor:pointer;
+  color:var(--dim);transition:.15s;border-left:2px solid transparent;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.sec-tab:hover{background:var(--bg3);color:var(--text)}
+.sec-tab.active{color:var(--green);border-left-color:var(--green);background:rgba(0,230,118,.05)}
+.setup-content{padding:18px 20px;overflow-y:auto}
+.section{display:none}.section.active{display:block}
+.sec-title{color:var(--green);font-size:.8rem;letter-spacing:2px;margin-bottom:6px;text-transform:uppercase}
+.sec-desc{color:var(--dim);font-size:.68rem;margin-bottom:16px;line-height:1.6}
+.form-row{margin-bottom:12px}
+.form-row label{display:block;color:var(--dim);font-size:.65rem;letter-spacing:1px;margin-bottom:4px;text-transform:uppercase}
+.form-row input,.form-row select,.form-row textarea{
+  width:100%;background:var(--bg3);border:1px solid var(--bg4);color:var(--text);
+  padding:8px 10px;font-family:'Courier New',monospace;font-size:.78rem;border-radius:2px;outline:none;
+}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--green)}
+.form-row textarea{height:70px;resize:vertical}
+.hint{color:var(--dim2);font-size:.6rem;margin-top:4px;line-height:1.5}
+.coin-table{width:100%;border-collapse:collapse;font-size:.7rem}
+.coin-table th{color:var(--green);text-align:left;padding:6px 8px;border-bottom:1px solid var(--bg3);font-size:.6rem;letter-spacing:1px}
+.coin-table td{padding:7px 8px;border-bottom:1px solid var(--bg3);color:var(--dim);vertical-align:middle}
+.coin-table tr:hover td{background:var(--bg3)}
+.coin-table input[type=radio]{accent-color:var(--green)}
+.sec-nav{display:flex;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--bg3)}
+
+/* ── PROFILES PANEL ── */
+.profiles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.pcard{background:var(--bg1);border:1px solid var(--bg3);border-radius:3px;padding:14px;transition:.2s}
+.pcard:hover{border-color:var(--bg4)}
+.pcard.active-card{border-color:var(--green);background:rgba(0,230,118,.04)}
+.pcard-name{font-size:.85rem;font-weight:bold;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.pcard-active{background:var(--green);color:#000;font-size:.55rem;padding:1px 6px;border-radius:1px;letter-spacing:1px}
+.pcard-meta{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.pcard-row{display:flex;align-items:center;gap:8px;font-size:.68rem}
+.pcard-row .lbl{color:var(--dim);min-width:50px;font-size:.6rem;letter-spacing:1px}
+.pcard-actions{display:flex;gap:6px;flex-wrap:wrap}
+.btn-use{background:#0a1a0a;border:1px solid var(--green);color:var(--green);font-family:'Courier New',monospace;font-size:.65rem;padding:4px 10px;cursor:pointer;border-radius:2px;letter-spacing:1px}
+.btn-use:hover{background:var(--green);color:#000}
+.btn-edit,.btn-del,.btn-exp{font-family:'Courier New',monospace;font-size:.65rem;padding:4px 10px;cursor:pointer;border-radius:2px;letter-spacing:1px;border:1px solid}
+.btn-edit{background:var(--bg3);border-color:var(--bg4);color:var(--dim)}.btn-edit:hover{color:var(--text)}
+.btn-del{background:#1a0000;border-color:#330000;color:var(--dim)}.btn-del:hover{background:var(--red);border-color:var(--red);color:#000}
+.btn-exp{background:#1a1a0a;border-color:var(--bg4);color:var(--dim)}.btn-exp:hover{color:var(--yellow);border-color:var(--yellow)}
+.empty-state{text-align:center;padding:50px 20px;color:var(--dim2)}
+.empty-icon{font-size:2.5rem;margin-bottom:12px}
+
+/* ── WALLET PANEL ── */
+.wallet-tabs{display:flex;gap:0;border-bottom:1px solid var(--bg3);margin-bottom:16px;overflow-x:auto}
+.wtab{
+  padding:9px 16px;font-size:.65rem;letter-spacing:1px;cursor:pointer;
+  color:var(--dim);border-bottom:2px solid transparent;white-space:nowrap;transition:.15s;
+}
+.wtab:hover{color:var(--text)}
+.wtab.active{color:var(--yellow);border-bottom-color:var(--yellow)}
+.wpage{display:none}.wpage.active{display:block}
+
+.port-header{
+  background:var(--bg1);border:1px solid var(--bg3);border-radius:3px;
+  padding:16px;margin-bottom:14px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+}
+.port-total{font-size:1.8rem;font-weight:bold;color:var(--green);letter-spacing:1px}
+.port-lbl{font-size:.58rem;color:var(--dim);letter-spacing:2px;text-transform:uppercase;margin-bottom:2px}
+.port-stat-val{font-size:1rem;color:var(--text);font-weight:bold}
+.port-stat-lbl{font-size:.58rem;color:var(--dim);letter-spacing:1px}
+.coin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:14px}
+.coin-card{background:var(--bg1);border:1px solid var(--bg3);border-radius:3px;padding:12px}
+.coin-card:hover{border-color:var(--bg4)}
+.coin-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:bold;flex-shrink:0}
+.coin-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.coin-symbol{font-weight:bold;font-size:.85rem}
+.coin-name-sm{font-size:.6rem;color:var(--dim)}
+.coin-balance{font-size:1.1rem;font-weight:bold;color:var(--green)}
+.coin-usd{font-size:.65rem;color:var(--dim)}
+
+/* Send form */
+.send-form{max-width:480px}
+.send-form .form-row{margin-bottom:14px}
+.amount-row{display:flex;gap:8px;align-items:center}
+.amount-row input{flex:1}
+.coin-tag{background:var(--bg3);border:1px solid var(--bg4);color:var(--yellow);padding:8px 12px;border-radius:2px;font-size:.75rem;letter-spacing:1px;white-space:nowrap}
+
+/* Fee strip */
+.fee-strip{display:flex;gap:8px;margin:10px 0}
+.fee-opt{
+  background:var(--bg3);border:1px solid var(--bg4);color:var(--dim);
+  font-family:'Courier New',monospace;font-size:.62rem;padding:5px 10px;cursor:pointer;border-radius:2px;letter-spacing:1px;transition:.15s;
+}
+.fee-opt:hover,.fee-opt.active{background:var(--bg2);border-color:var(--yellow);color:var(--yellow)}
+
+/* Tx table */
+.tx-table{width:100%;border-collapse:collapse;font-size:.68rem}
+.tx-table th{color:var(--green);text-align:left;padding:6px 8px;border-bottom:1px solid var(--bg3);font-size:.6rem;letter-spacing:1px}
+.tx-table td{padding:7px 8px;border-bottom:1px solid var(--bg2);color:var(--dim);vertical-align:middle}
+.tx-in{color:var(--green)}.tx-out{color:var(--red)}
+.tx-pending{color:var(--yellow)}
+.tx-hash{color:var(--dim2);font-size:.58rem;font-family:'Courier New',monospace;cursor:pointer}
+.tx-hash:hover{color:var(--cyan)}
+
+/* Security */
+.sec-item{background:var(--bg1);border:1px solid var(--bg3);border-radius:3px;padding:14px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px}
+.sec-icon{font-size:1.2rem;flex-shrink:0;margin-top:2px}
+.sec-detail .sec-name{font-size:.78rem;margin-bottom:4px}
+.sec-detail .sec-info{font-size:.65rem;color:var(--dim);line-height:1.5}
+.sec-status{margin-left:auto;flex-shrink:0}
+.badge-ok{background:#0a2a0a;border:1px solid var(--green);color:var(--green);padding:2px 8px;font-size:.6rem;border-radius:2px;letter-spacing:1px}
+.badge-warn{background:#1a1400;border:1px solid var(--yellow);color:var(--yellow);padding:2px 8px;font-size:.6rem;border-radius:2px;letter-spacing:1px}
+
+/* Swarm panel */
+.swarm-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+@media(max-width:640px){.swarm-grid{grid-template-columns:repeat(2,1fr)}}
+.sw-stat{background:var(--bg);border:1px solid var(--bg3);border-radius:3px;padding:10px 12px}
+.sw-stat .lbl{color:var(--dim2);font-size:.58rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+.sw-stat .val{font-size:1.1rem;font-weight:bold}
+.node-bar-wrap{height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;margin-top:10px}
+.node-bar{height:100%;background:var(--green);border-radius:2px;transition:.6s;width:0}
+
+/* Sessions */
+.sessions-table{width:100%;border-collapse:collapse;font-size:.68rem}
+.sessions-table th{color:var(--green);text-align:left;padding:6px 8px;border-bottom:1px solid var(--bg3);font-size:.6rem;letter-spacing:1px}
+.sessions-table td{padding:7px 8px;border-bottom:1px solid var(--bg2);color:var(--dim);vertical-align:middle}
+.sess-active{color:var(--green);font-weight:bold}
+
+/* ── TOAST ── */
+#toast{
+  position:fixed;bottom:20px;right:20px;
+  background:var(--bg1);border:1px solid var(--green);color:var(--green);
+  padding:10px 18px;border-radius:3px;font-size:.72rem;letter-spacing:1px;
+  display:none;z-index:9999;animation:fadeIn .2s;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── HEALTH MICRO-PANEL ── */
+.health-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+@media(max-width:560px){.health-grid{grid-template-columns:1fr}}
+.health-card{background:var(--bg1);border:1px solid var(--bg3);border-radius:3px;padding:12px}
+.hc-label{color:var(--dim);font-size:.6rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.hc-val{font-size:1.1rem;font-weight:bold}
+.hc-bar{height:3px;background:var(--bg3);border-radius:2px;margin-top:6px;overflow:hidden}
+.hc-fill{height:100%;border-radius:2px;transition:.5s}
+
+/* Responsive sidebar collapse on small screens */
+@media(max-width:640px){
+  .sidebar{width:52px}
+  .sidebar-logo-text,.nav-label,.nav-arrow,.nav-section-label,.sidebar-footer{opacity:0;width:0;overflow:hidden}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════ -->
+<div class="header">
+  <div class="logo">⛏ UMP <span>UNIVERSAL MINER PRO v5.2</span></div>
+  <div class="status-pill">
+    <div class="dot active" id="sDot"></div>
+    <span id="sLabel" style="color:var(--green)">MINING</span>
+    <span style="color:var(--dim2)">|</span>
+    <span id="sCoin" class="badge b-coin">XMR</span>
+    <span id="sPool" style="color:var(--dim2);font-size:.6rem">MoneroOcean</span>
+  </div>
+  <div class="header-right">
+    <span class="ver-tag" id="sUp">Uptime: 4h 22m</span>
+  </div>
+</div>
+
+<!-- ══ TICKER ═══════════════════════════════════════════════════ -->
+<div class="ticker-bar">
+  <div class="ticker-inner" id="ticker"></div>
+</div>
+
+<!-- ══ BODY ════════════════════════════════════════════════════ -->
+<div class="body-wrap">
+
+  <!-- ── SIDEBAR ── -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span class="sidebar-logo-text">NAVIGATION</span>
+      <button class="collapse-btn" onclick="toggleSidebar()" id="collapseBtn" title="Collapse sidebar">◀</button>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-label">MAIN</div>
+      <button class="nav-btn active" id="nav-home" onclick="showHome()">
+        <span class="nav-icon">◈</span>
+        <span class="nav-label">Dashboard</span>
+      </button>
+      <button class="nav-btn" id="nav-health" onclick="openPanel('health')">
+        <span class="nav-icon">♡</span>
+        <span class="nav-label">Health</span>
+        <span class="nav-arrow">▶</span>
+      </button>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-label">MINING</div>
+      <button class="nav-btn" id="nav-setup" onclick="openPanel('setup')">
+        <span class="nav-icon">⚙</span>
+        <span class="nav-label">Setup Miner</span>
+        <span class="nav-arrow">▶</span>
+      </button>
+      <button class="nav-btn" id="nav-profiles" onclick="openPanel('profiles')">
+        <span class="nav-icon">◧</span>
+        <span class="nav-label">Profiles</span>
+        <span class="nav-arrow">▶</span>
+      </button>
+      <button class="nav-btn" id="nav-swarm" onclick="openPanel('swarm')">
+        <span class="nav-icon">⬡</span>
+        <span class="nav-label">Swarm</span>
+        <span class="nav-arrow">▶</span>
+      </button>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-label">FINANCE</div>
+      <button class="nav-btn" id="nav-wallet" onclick="openPanel('wallet')">
+        <span class="nav-icon">◈</span>
+        <span class="nav-label">Wallet</span>
+        <span class="nav-arrow">▶</span>
+      </button>
+    </div>
+
+    <div class="sidebar-footer">UMP v5.2 · Consolidated</div>
+  </div>
+
+  <!-- ── PANEL CONTAINER ── -->
+  <div class="panel-container" id="panelContainer">
+
+    <!-- ── HOME ── -->
+    <div class="slide-panel active" id="panel-home">
+      <div class="panel-body">
+
+        <div class="profile-bar">
+          <label style="color:var(--dim);font-size:.65rem;letter-spacing:1px">PROFILE</label>
+          <select class="psel" id="profileSel" onchange="switchProfile(this.value)">
+            <option value="xmr_default">xmr_default</option>
+            <option value="btc_antpool">btc_antpool</option>
+            <option value="eth_ethermine">eth_ethermine</option>
+          </select>
+          <span class="badge b-coin" id="activeCoin">XMR</span>
+          <span class="badge b-pool" id="activePool">MoneroOcean</span>
+          <button class="btn btn-sm btn-ghost" onclick="openPanel('setup')">+ NEW</button>
+        </div>
+
+        <!-- Stat cards -->
+        <div class="home-grid">
+          <div class="card">
+            <div class="card-lbl">Hashrate</div>
+            <div class="card-val" id="cHash">2,847 H/s</div>
+            <div class="card-sub">Peak: 3,012 H/s</div>
+            <div class="eff-bar"><div class="eff-fill" style="width:87%"></div></div>
+          </div>
+          <div class="card">
+            <div class="card-lbl">Accepted Shares</div>
+            <div class="card-val blue" id="cAcc">1,284</div>
+            <div class="card-sub">Rejected: 2 (0.15%)</div>
+          </div>
+          <div class="card">
+            <div class="card-lbl">Est. Daily</div>
+            <div class="card-val yellow" id="cEarn">0.0042 XMR</div>
+            <div class="card-sub">≈ $0.82 USD</div>
+          </div>
+          <div class="card">
+            <div class="card-lbl">CPU Temp</div>
+            <div class="card-val cyan" id="cTemp">64°C</div>
+            <div class="card-sub">Throttle at 85°C</div>
+            <div class="eff-bar"><div class="eff-fill" style="width:64%;background:var(--cyan)"></div></div>
+          </div>
+        </div>
+
+        <!-- Algo selector -->
+        <div class="algo-strip">
+          <span style="color:var(--dim);font-size:.6rem;letter-spacing:1px;margin-right:4px">ALGO</span>
+          <button class="algo-btn active-randomx" id="algoBtn_RANDOMX" onclick="switchAlgo('RANDOMX')">RandomX</button>
+          <button class="algo-btn" id="algoBtn_X11" onclick="switchAlgo('X11')">X11</button>
+          <button class="algo-btn" id="algoBtn_SCRYPT" onclick="switchAlgo('SCRYPT')">Scrypt</button>
+          <button class="algo-btn" id="algoBtn_SHA256" onclick="switchAlgo('SHA256')">SHA-256</button>
+          <span class="algo-info">Active: <span id="algoActive">RANDOMX</span></span>
+        </div>
+
+        <!-- Controls -->
+        <div class="ctrl-strip">
+          <button class="btn btn-stop" onclick="mineStop()">■ STOP</button>
+          <button class="btn btn-start" onclick="mineStart()">▶ START</button>
+          <div class="thr-row">
+            <label>THREADS</label>
+            <input type="number" id="thr" value="4" min="1" max="128">
+          </div>
+          <span class="ctrl-stat" id="cStat">Running on 4 threads</span>
+        </div>
+
+        <!-- Charts row -->
+        <div class="home-grid-2">
+          <div class="chart-box">
+            <div class="box-title">HASHRATE HISTORY</div>
+            <canvas class="chart-canvas" id="hrC"></canvas>
+          </div>
+          <div class="chart-box">
+            <div class="box-title">EARNINGS (24H)</div>
+            <canvas class="chart-canvas" id="earnC"></canvas>
+          </div>
+        </div>
+
+        <!-- More stats -->
+        <div class="home-grid-3">
+          <div class="card">
+            <div class="card-lbl">Network Difficulty</div>
+            <div class="card-val orange" style="font-size:1rem">341.28 G</div>
+          </div>
+          <div class="card">
+            <div class="card-lbl">Pool Hashrate</div>
+            <div class="card-val" style="font-size:1rem">1.24 PH/s</div>
+          </div>
+          <div class="card">
+            <div class="card-lbl">Swarm Nodes</div>
+            <div class="card-val cyan" style="font-size:1rem" id="swarmCount">0 / 0</div>
+          </div>
+        </div>
+
+        <!-- Log -->
+        <div class="chart-box">
+          <div class="box-title">MINER LOG <span style="float:right;cursor:pointer;color:var(--dim2)" onclick="clearLog()">CLEAR</span></div>
+          <div class="log-panel" id="logPanel">
+            <pre id="logPre">[10:22:14] <span style="color:var(--green)">ACCEPTED</span> share #1284 | diff: 128K | 2847 H/s
+[10:22:01] <span style="color:var(--green)">ACCEPTED</span> share #1283 | diff: 128K | 2821 H/s
+[10:21:44] Pool latency: 48ms
+[10:21:30] <span style="color:var(--green)">ACCEPTED</span> share #1282 | diff: 128K | 2863 H/s
+[10:21:18] Algo: RandomX | Threads: 4 | Pool: MoneroOcean
+[10:21:00] Miner started</pre>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── HEALTH PANEL ── -->
+    <div class="slide-panel" id="panel-health">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">♡ SYSTEM HEALTH</div>
+          <div class="panel-subtitle">Real-time hardware & process diagnostics</div>
+        </div>
+        <button class="panel-close" onclick="closePanel('health')">✕ CLOSE</button>
+      </div>
+      <div class="panel-body">
+        <div class="health-grid">
+          <div class="health-card">
+            <div class="hc-label">CPU Usage</div>
+            <div class="hc-val" style="color:var(--orange)">78%</div>
+            <div class="hc-bar"><div class="hc-fill" style="width:78%;background:var(--orange)"></div></div>
+          </div>
+          <div class="health-card">
+            <div class="hc-label">Memory</div>
+            <div class="hc-val" style="color:var(--cyan)">3.2 / 8 GB</div>
+            <div class="hc-bar"><div class="hc-fill" style="width:40%;background:var(--cyan)"></div></div>
+          </div>
+          <div class="health-card">
+            <div class="hc-label">CPU Temp</div>
+            <div class="hc-val" style="color:var(--yellow)">64°C</div>
+            <div class="hc-bar"><div class="hc-fill" style="width:64%;background:var(--yellow)"></div></div>
+          </div>
+          <div class="health-card">
+            <div class="hc-label">Disk Free</div>
+            <div class="hc-val" style="color:var(--green)">142 GB</div>
+            <div class="hc-bar"><div class="hc-fill" style="width:35%;background:var(--green)"></div></div>
+          </div>
+          <div class="health-card">
+            <div class="hc-label">Network TX</div>
+            <div class="hc-val">1.2 MB/s</div>
+          </div>
+          <div class="health-card">
+            <div class="hc-label">Uptime</div>
+            <div class="hc-val" style="color:var(--green)">4h 22m</div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-lbl" style="margin-bottom:10px">PROCESS STATUS</div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:.68rem">
+            <div style="display:flex;align-items:center;gap:10px"><span style="color:var(--green)">● RUNNING</span><span>xmrig (PID 4821)</span><span style="margin-left:auto;color:var(--dim)">CPU: 78% | MEM: 420 MB</span></div>
+            <div style="display:flex;align-items:center;gap:10px"><span style="color:var(--green)">● RUNNING</span><span>gunicorn (PID 4744)</span><span style="margin-left:auto;color:var(--dim)">CPU: 0.4% | MEM: 88 MB</span></div>
+            <div style="display:flex;align-items:center;gap:10px"><span style="color:var(--dim)">○ IDLE</span><span>wallet_enforcer</span><span style="margin-left:auto;color:var(--dim)">Standby</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SETUP PANEL ── -->
+    <div class="slide-panel" id="panel-setup">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">⚙ SETUP MINER</div>
+          <div class="panel-subtitle">Configure coins, pools, wallets & hardware</div>
+        </div>
+        <button class="panel-close" onclick="closePanel('setup')">✕ CLOSE</button>
+      </div>
+      <div class="panel-body" style="padding:0">
+        <div class="setup-wrap">
+          <div class="setup-sidebar">
+            <div class="sec-tab active" onclick="goSection(0)" id="stab0">Identity</div>
+            <div class="sec-tab" onclick="goSection(1)" id="stab1">Coin Selection</div>
+            <div class="sec-tab" onclick="goSection(2)" id="stab2">Pool Connection</div>
+            <div class="sec-tab" onclick="goSection(3)" id="stab3">Kryptex</div>
+            <div class="sec-tab" onclick="goSection(4)" id="stab4">ViaBTC</div>
+            <div class="sec-tab" onclick="goSection(5)" id="stab5">Unmineable</div>
+            <div class="sec-tab" onclick="goSection(6)" id="stab6">Mining Pool Hub</div>
+            <div class="sec-tab" onclick="goSection(7)" id="stab7">MoneroOcean</div>
+            <div class="sec-tab" onclick="goSection(8)" id="stab8">Binance Pool</div>
+            <div class="sec-tab" onclick="goSection(9)" id="stab9">Wallets</div>
+            <div class="sec-tab" onclick="goSection(10)" id="stab10">Hardware</div>
+            <div class="sec-tab" onclick="goSection(11)" id="stab11">Review & Save</div>
+          </div>
+          <div class="setup-content" id="setupContent">
+
+            <div class="section active" id="sec0">
+              <div class="sec-title">Profile Identity</div>
+              <div class="sec-desc">Give this setup a unique name. Each profile can have different coins, pools, and credentials — saved as a template.</div>
+              <div class="form-row"><label>Profile Name</label><input type="text" placeholder="e.g. xmr_home_rig"><div class="hint">Unique identifier. No spaces — use underscores.</div></div>
+              <div class="form-row"><label>Worker Name</label><input type="text" placeholder="e.g. rig01"><div class="hint">Shown on your pool dashboard to identify this machine.</div></div>
+              <div class="form-row"><label>Notes</label><textarea placeholder="Hardware specs, location, etc."></textarea></div>
+              <div class="sec-nav"><button class="btn btn-sm btn-start" onclick="goSection(1)">NEXT ▶</button></div>
+            </div>
+
+            <div class="section" id="sec1">
+              <div class="sec-title">Coin Selection</div>
+              <div class="sec-desc">Select the cryptocurrency to mine. The algorithm and compatible pools are determined by this choice.</div>
+              <table class="coin-table" id="coinTable">
+                <thead><tr><th></th><th>COIN</th><th>ALGO</th><th>MINER</th><th>ESTIMATED ROI</th></tr></thead>
+                <tbody id="coinTbody">
+                  <tr><td><input type="radio" name="coin" value="XMR" checked></td><td><strong>XMR</strong> Monero</td><td>RandomX</td><td>XMRig</td><td style="color:var(--green)">★★★★☆</td></tr>
+                  <tr><td><input type="radio" name="coin" value="BTC"></td><td><strong>BTC</strong> Bitcoin</td><td>SHA-256</td><td>CGMiner</td><td style="color:var(--green)">★★★☆☆</td></tr>
+                  <tr><td><input type="radio" name="coin" value="LTC"></td><td><strong>LTC</strong> Litecoin</td><td>Scrypt</td><td>CPUMiner</td><td style="color:var(--green)">★★★☆☆</td></tr>
+                  <tr><td><input type="radio" name="coin" value="DASH"></td><td><strong>DASH</strong> Dash</td><td>X11</td><td>CPUMiner</td><td style="color:var(--green)">★★☆☆☆</td></tr>
+                  <tr><td><input type="radio" name="coin" value="RVN"></td><td><strong>RVN</strong> Ravencoin</td><td>KawPow</td><td>T-Rex</td><td style="color:var(--green)">★★★☆☆</td></tr>
+                  <tr><td><input type="radio" name="coin" value="ERG"></td><td><strong>ERG</strong> Ergo</td><td>Autolykos2</td><td>lolMiner</td><td style="color:var(--green)">★★★★☆</td></tr>
+                </tbody>
+              </table>
+              <div class="sec-nav">
+                <button class="btn btn-sm btn-ghost" onclick="goSection(0)">◀ BACK</button>
+                <button class="btn btn-sm btn-start" onclick="goSection(2)">NEXT ▶</button>
+              </div>
+            </div>
+
+            <div class="section" id="sec2">
+              <div class="sec-title">Pool Connection</div>
+              <div class="sec-desc">Choose a mining pool and configure the stratum connection.</div>
+              <div class="form-row"><label>Pool URL</label><input type="text" placeholder="stratum+tcp://pool.example.com:3333"></div>
+              <div class="form-row"><label>Username / Wallet</label><input type="text" placeholder="Your wallet address or pool username"></div>
+              <div class="form-row"><label>Password</label><input type="password" placeholder="Usually 'x' or pool password"></div>
+              <div class="form-row"><label>TLS / SSL</label><select><option>Disabled</option><option>Enabled (stratum+ssl://)</option><option>Auto-detect</option></select></div>
+              <div class="sec-nav">
+                <button class="btn btn-sm btn-ghost" onclick="goSection(1)">◀ BACK</button>
+                <button class="btn btn-sm btn-start" onclick="goSection(3)">NEXT ▶</button>
+              </div>
+            </div>
+
+            <div class="section" id="sec3">
+              <div class="sec-title">Kryptex Pool</div>
+              <div class="sec-desc">Kryptex automatically mines the most profitable coin and pays in BTC. Register at <code style="color:var(--yellow);font-size:.7rem">kryptex.com</code></div>
+              <div class="form-row"><label>Kryptex Wallet Address</label><input type="text" placeholder="Your Kryptex wallet address"></div>
+              <div class="form-row"><label>Worker Name</label><input type="text" placeholder="e.g. kryptex_rig1"></div>
+              <div class="sec-nav">
+                <button class="btn btn-sm btn-ghost" onclick="goSection(2)">◀ BACK</button>
+                <button class="btn btn-sm btn-start" onclick="goSection(4)">NEXT ▶</button>
+              </div>
+            </div>
+
+            <div class="section" id="sec4">
+              <div class="sec-title">ViaBTC</div>
+              <div class="sec-desc">ViaBTC is an established multi-coin pool with PPS+ payout. Register at <code style="color:var(--yellow);font-size:.7rem">viabtc.com</code></div>
+              <div class="form-row"><label>ViaBTC Username</label><input type="text" placeholder="Your ViaBTC account username"></div>
+              <div class="form-row"><label>Worker Name</label><input type="text" placeholder="e.g. worker1"></div>
+              <div class="form-row"><label>ViaBTC Password</label><input type="password" placeholder="Usually '123456'"></div>
+              <div class="sec-nav">
+                <button class="btn btn-sm btn-ghost" onclick="goSection(3)">◀ BACK</button>
+                <button class="btn btn-sm btn-start" onclick="goSection(5)">NEXT ▶</button>
+              </div>
+            </div>
+
+            <div class="section" id="sec5">
+              <div class="sec-title">Unmineable</div>
+              <div class="sec-desc">Mine any coin with any GPU/CPU. Register at <code style="color:var(--yellow);font-size:.7rem">unmineable.com</code></div>
+              <div class="form-row"><label>Target Coin</label><input type="text" placeholder="e.g. DOGE, SHIB, ADA"></div>
+              <div class="form-row"><label>Wallet Address</label><input type="text" placeholder="Your target coin wallet"></div>
+              <div class="form-row"><label>Referral Code (optional)</label><input type="text" placeholder="Reduces fees from 1% to 0.75%"></div>
+              <div class="sec-nav">
+                <button class="btn btn-sm btn-ghost" onclick="goSection(4)">◀ BACK</button>
+                <button class="btn btn-sm btn-start" onclick="goSection(6)">NEXT ▶</button>
+              </div>
+            </div>
+
+            <div class="section" id="sec6">
+              <div class="sec-title">Mining Pool Hub</div>
+              <div class="sec-desc">Supports auto-switching between algorithms for max profitability. Register at <code style="color:var(--yellow);font-size:.7rem">miningpoolhub.com</code></div>
+              <div class="form-row"><label>MPH Username</label><input type="text" placeholder="Your Mining Pool Hub username"></div>
+              <div class="form-row"><label>API Key</label><input type="text" placeholder="From your MPH account settings"></div>
+              <div class="sec-nav">
+                <button class="btn btn-sm btn-ghost" onclick="goSection(5)">◀ BACK</button>
+                <button class="btn btn-sm btn-start" onclick="goSection(7)">NEXT ▶</button>
+              </div>
+            </div>
+
+            <div class="section" id="sec7">
+              <div class="sec-title">MoneroOcean</div>
+              <div class="sec-desc">Auto-switching XMR pool with high efficiency. Ideal for RandomX CPU mining.</div>
+              <div class="form-row"><label>XMR Wallet Address</label><input type="text" placeholder="Your Monero wallet address (starts with 4...)"></div>
+              <div class="form-row"><label>Worker / Rig ID</label><input type="text" placeholder="Optional rig identifier"></div>
+              <div class="form-row"><label>Performance Level</label><select><option>Auto</option><option>High (max performance)</option><option>Medium (balanced)</option><option>Low (background)</option></select></div>
+              <div class="sec-nav">
+                <button class="btn btn-sm btn-ghost" onclick="goSection(6)">◀ BACK</button>
+                <button class="btn btn-sm btn-start" onclick="goSection(8)">NEXT ▶</button>
+              </div>
+            </div>
+
+            <div class="section" id="sec8">
+              <div class="sec-title">Binance Pool</div>
+              <div class="sec-desc">Mine directly to your Binance account. Requires a Binance UID.</div>
+              <div class="form-row"><label>Binance UID</label><input type="text" placeholder="Your numeric Binance UID"></div>
+              <div class="form-row"><label>Worker Name</label><input type="text" placeholder="e.g. binance_worker1"></div>
+              <div class="form-row"><label>Region</label><select><option>Auto</option><option>US East</option><option>EU West</option><option>Asia Pacific</option></select></div>
+              <div class="sec-nav">
+                <button class="btn btn-sm btn-ghost" onclick="goSection(7)">◀ BACK</button>
+                <button class="btn btn-sm btn-start" onclick="goSection(9)">NEXT ▶</button>
+              </div>
+            </div>
+
+            <div class="section" id="sec9">
+              <div class="sec-title">Wallet Addresses</div>
+              <div class="sec-desc">Store your wallet addresses for quick access. These are used for payouts and the built-in wallet manager.</div>
+              <div class="form-row"><label>XMR Wallet</label><input type="text" placeholder="4..."></div>
+              <div class="form-row"><label>BTC Wallet</label><input type="text" placeholder="bc1..."></div>
+              <div class="form-row"><label>ETH Wallet</label><input type="text" placeholder="0x..."></div>
+              <div class="form-row"><label>LTC Wallet</label><input type="text" placeholder="L..."></div>
+              <div class="sec-nav">
+                <button class="btn btn-sm btn-ghost" onclick="goSection(8)">◀ BACK</button>
+                <button class="btn btn-sm btn-start" onclick="goSection(10)">NEXT ▶</button>
+              </div>
+            </div>
+
+            <div class="section" id="sec10">
+              <div class="sec-title">Hardware & Threads</div>
+              <div class="sec-desc">Configure thread count and CPU affinity for optimal performance.</div>
+              <div class="form-row"><label>CPU Threads</label><input type="number" placeholder="4" min="1" max="256"><div class="hint">Recommended: leave 1 core free. On ARM, leave 2 free.</div></div>
+              <div class="form-row"><label>CPU Affinity (optional)</label><input type="text" placeholder="e.g. 0,1,2,3"><div class="hint">Comma-separated core IDs. Leave blank for auto.</div></div>
+              <div class="form-row"><label>Huge Pages</label><select><option>Auto-detect</option><option>Enabled</option><option>Disabled</option></select></div>
+              <div class="form-row"><label>Priority</label><select><option>Normal</option><option>High</option><option>Low (background)</option></select></div>
+              <div class="sec-nav">
+                <button class="btn btn-sm btn-ghost" onclick="goSection(9)">◀ BACK</button>
+                <button class="btn btn-sm btn-start" onclick="goSection(11)">REVIEW ▶</button>
+              </div>
+            </div>
+
+            <div class="section" id="sec11">
+              <div class="sec-title">Review & Save</div>
+              <div class="sec-desc">Check your configuration before saving.</div>
+              <div id="reviewContent" style="font-size:.7rem;color:var(--dim);line-height:2;margin-bottom:16px">
+                <div>▸ Profile: <span style="color:var(--green)">xmr_moneroocean</span></div>
+                <div>▸ Coin: <span style="color:var(--green)">XMR (Monero)</span></div>
+                <div>▸ Algo: <span style="color:var(--cyan)">RandomX</span></div>
+                <div>▸ Pool: <span style="color:var(--blue)">MoneroOcean</span></div>
+                <div>▸ Threads: <span style="color:var(--yellow)">4</span></div>
+              </div>
+              <div style="display:flex;gap:10px">
+                <button class="btn btn-start" onclick="saveProfile()">✔ SAVE PROFILE</button>
+                <button class="btn btn-ghost" onclick="goSection(0)">↺ START OVER</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PROFILES PANEL ── -->
+    <div class="slide-panel" id="panel-profiles">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">◧ MINING PROFILES</div>
+          <div class="panel-subtitle">Switch, edit, and manage saved configurations</div>
+        </div>
+        <button class="panel-close" onclick="closePanel('profiles')">✕ CLOSE</button>
+      </div>
+      <div class="panel-body">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="color:var(--green);font-size:.8rem;letter-spacing:2px;text-transform:uppercase">Mining Profiles</div>
+            <div style="color:var(--dim);font-size:.65rem;margin-top:3px">Each profile stores a complete setup. Switch instantly.</div>
+          </div>
+          <button class="btn btn-start btn-sm" onclick="openPanel('setup')">+ NEW PROFILE</button>
+        </div>
+
+        <div class="profiles-grid" id="profilesGrid">
+          <div class="pcard active-card">
+            <div class="pcard-name">xmr_default <span class="pcard-active">ACTIVE</span></div>
+            <div class="pcard-meta">
+              <div class="pcard-row"><span class="lbl">COIN</span><span class="badge b-coin">XMR</span></div>
+              <div class="pcard-row"><span class="lbl">POOL</span><span class="badge b-pool">MoneroOcean</span></div>
+              <div class="pcard-row"><span class="lbl">THREADS</span><span>4</span></div>
+            </div>
+            <div style="color:var(--dim2);font-size:.6rem;margin-bottom:10px">Created: 2026-05-12</div>
+            <div class="pcard-actions">
+              <button class="btn-use">USE</button>
+              <button class="btn-edit">EDIT</button>
+              <button class="btn-exp">EXPORT</button>
+              <button class="btn-del">DEL</button>
+            </div>
+          </div>
+          <div class="pcard">
+            <div class="pcard-name">btc_antpool</div>
+            <div class="pcard-meta">
+              <div class="pcard-row"><span class="lbl">COIN</span><span class="badge b-coin" style="border-color:var(--orange);color:var(--orange);background:#1a0d00">BTC</span></div>
+              <div class="pcard-row"><span class="lbl">POOL</span><span class="badge b-pool">Antpool</span></div>
+              <div class="pcard-row"><span class="lbl">THREADS</span><span>8</span></div>
+            </div>
+            <div style="color:var(--dim2);font-size:.6rem;margin-bottom:10px">Created: 2026-05-20</div>
+            <div class="pcard-actions">
+              <button class="btn-use">USE</button>
+              <button class="btn-edit">EDIT</button>
+              <button class="btn-exp">EXPORT</button>
+              <button class="btn-del">DEL</button>
+            </div>
+          </div>
+          <div class="pcard">
+            <div class="pcard-name">eth_ethermine</div>
+            <div class="pcard-meta">
+              <div class="pcard-row"><span class="lbl">COIN</span><span class="badge b-pool">ETH</span></div>
+              <div class="pcard-row"><span class="lbl">POOL</span><span class="badge b-pool">Ethermine</span></div>
+              <div class="pcard-row"><span class="lbl">THREADS</span><span>6</span></div>
+            </div>
+            <div style="color:var(--dim2);font-size:.6rem;margin-bottom:10px">Created: 2026-06-01</div>
+            <div class="pcard-actions">
+              <button class="btn-use">USE</button>
+              <button class="btn-edit">EDIT</button>
+              <button class="btn-exp">EXPORT</button>
+              <button class="btn-del">DEL</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sessions -->
+        <div class="card" style="margin-top:20px">
+          <div class="card-lbl" style="margin-bottom:10px">RECENT SESSIONS</div>
+          <table class="sessions-table">
+            <thead><tr><th>PROFILE</th><th>STARTED</th><th>DURATION</th><th>EARNED</th><th>STATUS</th></tr></thead>
+            <tbody>
+              <tr><td>xmr_default</td><td>2026-06-07 06:00</td><td>4h 22m</td><td>0.0042 XMR</td><td class="sess-active">● ACTIVE</td></tr>
+              <tr><td>btc_antpool</td><td>2026-06-06 14:00</td><td>8h 12m</td><td>0.00008 BTC</td><td>Stopped</td></tr>
+              <tr><td>eth_ethermine</td><td>2026-06-05 09:30</td><td>12h 00m</td><td>0.0018 ETH</td><td>Stopped</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SWARM PANEL ── -->
+    <div class="slide-panel" id="panel-swarm">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">⬡ SWARM CONTROL</div>
+          <div class="panel-subtitle">Distributed multi-node mining network</div>
+        </div>
+        <button class="panel-close" onclick="closePanel('swarm')">✕ CLOSE</button>
+      </div>
+      <div class="panel-body">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+          <button class="btn btn-start btn-sm" id="btnSwarmStart" onclick="swarmStart()">▶ START SWARM</button>
+          <button class="btn btn-stop btn-sm" id="btnSwarmStop" style="display:none" onclick="swarmStop()">■ STOP SWARM</button>
+          <span id="swarmStat" style="font-size:.68rem;color:var(--dim)">Swarm idle</span>
+        </div>
+        <div class="swarm-grid">
+          <div class="sw-stat"><div class="lbl">TOTAL NODES</div><div class="val" id="sw-nodes">0</div></div>
+          <div class="sw-stat"><div class="lbl">ACTIVE</div><div class="val" style="color:var(--green)" id="sw-active">0</div></div>
+          <div class="sw-stat"><div class="lbl">COMBINED H/S</div><div class="val" style="color:var(--cyan)" id="sw-hash">0</div></div>
+          <div class="sw-stat"><div class="lbl">EFFICIENCY</div><div class="val" style="color:var(--yellow)" id="sw-eff">—</div></div>
+        </div>
+        <div class="node-bar-wrap"><div class="node-bar" id="nodeBar"></div></div>
+        <div style="font-size:.6rem;color:var(--dim2);margin-top:4px;letter-spacing:1px" id="nodeCountLabel">0 / 0 nodes spawned</div>
+
+        <div class="card" style="margin-top:14px">
+          <div class="card-lbl" style="margin-bottom:10px">NODE CONFIGURATION</div>
+          <div class="form-row"><label>Max Nodes</label><input type="number" value="4" min="1" max="256" style="width:80px;background:var(--bg3);border:1px solid var(--bg4);color:var(--text);padding:6px 10px;font-family:'Courier New',monospace;font-size:.8rem;border-radius:2px;outline:none"></div>
+          <div class="form-row"><label>Threads per Node</label><input type="number" value="2" min="1" max="32" style="width:80px;background:var(--bg3);border:1px solid var(--bg4);color:var(--text);padding:6px 10px;font-family:'Courier New',monospace;font-size:.8rem;border-radius:2px;outline:none"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── WALLET PANEL ── -->
+    <div class="slide-panel" id="panel-wallet">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">◈ WALLET MANAGER</div>
+          <div class="panel-subtitle">Portfolio, transactions, security & address book</div>
+        </div>
+        <button class="panel-close" onclick="closePanel('wallet')">✕ CLOSE</button>
+      </div>
+      <div class="panel-body">
+        <div class="wallet-tabs">
+          <div class="wtab active" onclick="showWTab('portfolio')">Portfolio</div>
+          <div class="wtab" onclick="showWTab('send')">Send</div>
+          <div class="wtab" onclick="showWTab('history')">History</div>
+          <div class="wtab" onclick="showWTab('addrbook')">Address Book</div>
+          <div class="wtab" onclick="showWTab('create')">Create Wallet</div>
+          <div class="wtab" onclick="showWTab('security')">Security</div>
+        </div>
+
+        <!-- Portfolio -->
+        <div class="wpage active" id="wp-portfolio">
+          <div class="port-header">
+            <div>
+              <div class="port-lbl">Total Portfolio Value</div>
+              <div class="port-total">$1,284.72</div>
+            </div>
+            <div style="text-align:center">
+              <div class="port-stat-lbl">24H CHANGE</div>
+              <div class="port-stat-val" style="color:var(--green)">+$18.44 (+1.45%)</div>
+            </div>
+            <div style="text-align:center">
+              <div class="port-stat-lbl">WALLETS</div>
+              <div class="port-stat-val">4</div>
+            </div>
+            <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-sm btn-ghost">↓ RECEIVE</button>
+              <button class="btn btn-sm btn-start" onclick="showWTab('send')">↑ SEND</button>
+            </div>
+          </div>
+          <div class="coin-grid">
+            <div class="coin-card">
+              <div class="coin-hdr"><div class="coin-icon" style="background:#ff6600;color:#000">XMR</div><div><div class="coin-symbol">Monero</div><div class="coin-name-sm">XMR</div></div></div>
+              <div class="coin-balance">0.4821 XMR</div>
+              <div class="coin-usd">≈ $94.32 USD</div>
+            </div>
+            <div class="coin-card">
+              <div class="coin-hdr"><div class="coin-icon" style="background:#f7931a;color:#000">BTC</div><div><div class="coin-symbol">Bitcoin</div><div class="coin-name-sm">BTC</div></div></div>
+              <div class="coin-balance">0.01842 BTC</div>
+              <div class="coin-usd">≈ $1,142.04 USD</div>
+            </div>
+            <div class="coin-card">
+              <div class="coin-hdr"><div class="coin-icon" style="background:#627eea;color:#fff">ETH</div><div><div class="coin-symbol">Ethereum</div><div class="coin-name-sm">ETH</div></div></div>
+              <div class="coin-balance">0.0284 ETH</div>
+              <div class="coin-usd">≈ $46.16 USD</div>
+            </div>
+            <div class="coin-card">
+              <div class="coin-hdr"><div class="coin-icon" style="background:#345d9d;color:#fff">LTC</div><div><div class="coin-symbol">Litecoin</div><div class="coin-name-sm">LTC</div></div></div>
+              <div class="coin-balance">0.148 LTC</div>
+              <div class="coin-usd">≈ $12.20 USD</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Send -->
+        <div class="wpage" id="wp-send">
+          <div class="send-form">
+            <div class="form-row"><label>Coin</label>
+              <select style="width:100%;background:var(--bg3);border:1px solid var(--bg4);color:var(--text);padding:8px 10px;font-family:'Courier New',monospace;font-size:.78rem;border-radius:2px;outline:none">
+                <option>XMR — Monero (0.4821)</option><option>BTC — Bitcoin (0.01842)</option><option>ETH — Ethereum (0.0284)</option>
+              </select>
+            </div>
+            <div class="form-row"><label>Recipient Address</label><input type="text" placeholder="Paste destination wallet address"></div>
+            <div class="form-row"><label>Amount</label>
+              <div class="amount-row"><input type="text" placeholder="0.0000"><span class="coin-tag">XMR</span><button class="btn btn-sm btn-ghost" style="white-space:nowrap">MAX</button></div>
+            </div>
+            <div class="form-row"><label>Transaction Fee</label>
+              <div class="fee-strip">
+                <div class="fee-opt">SLOW<br><span style="color:var(--dim2)">0.0001</span></div>
+                <div class="fee-opt active">NORMAL<br><span>0.0003</span></div>
+                <div class="fee-opt">FAST<br><span style="color:var(--dim2)">0.0008</span></div>
+              </div>
+            </div>
+            <button class="btn btn-start">↑ SEND TRANSACTION</button>
+          </div>
+        </div>
+
+        <!-- History -->
+        <div class="wpage" id="wp-history">
+          <table class="tx-table">
+            <thead><tr><th>TYPE</th><th>AMOUNT</th><th>COIN</th><th>DATE</th><th>STATUS</th><th>HASH</th></tr></thead>
+            <tbody>
+              <tr><td class="tx-in">▲ IN</td><td class="tx-in">+0.0042</td><td>XMR</td><td>2026-06-07 10:21</td><td style="color:var(--green)">● Confirmed</td><td class="tx-hash">4a1b2c3d...</td></tr>
+              <tr><td class="tx-out">▼ OUT</td><td class="tx-out">-0.005</td><td>BTC</td><td>2026-06-06 18:44</td><td style="color:var(--green)">● Confirmed</td><td class="tx-hash">bc1f8a2e...</td></tr>
+              <tr><td class="tx-in">▲ IN</td><td class="tx-in">+0.0018</td><td>ETH</td><td>2026-06-05 09:30</td><td class="tx-pending">◷ Pending</td><td class="tx-hash">0x8f22a1...</td></tr>
+              <tr><td class="tx-in">▲ IN</td><td class="tx-in">+0.0384</td><td>XMR</td><td>2026-06-04 14:10</td><td style="color:var(--green)">● Confirmed</td><td class="tx-hash">4f9d3b1c...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Address Book -->
+        <div class="wpage" id="wp-addrbook">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <div style="color:var(--dim);font-size:.65rem;letter-spacing:1px">SAVED ADDRESSES</div>
+            <button class="btn btn-sm btn-start">+ ADD</button>
+          </div>
+          <table class="tx-table">
+            <thead><tr><th>LABEL</th><th>COIN</th><th>ADDRESS</th><th></th></tr></thead>
+            <tbody>
+              <tr><td>Pool Payout</td><td>XMR</td><td class="tx-hash">4abcdef123...</td><td><button class="btn-edit" style="cursor:pointer">EDIT</button></td></tr>
+              <tr><td>Cold Storage</td><td>BTC</td><td class="tx-hash">bc1q9xyz...</td><td><button class="btn-edit" style="cursor:pointer">EDIT</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Create Wallet -->
+        <div class="wpage" id="wp-create">
+          <div class="send-form">
+            <div style="color:var(--green);font-size:.8rem;letter-spacing:2px;margin-bottom:12px;text-transform:uppercase">Generate New Wallet</div>
+            <div class="form-row"><label>Coin Type</label>
+              <select style="width:100%;background:var(--bg3);border:1px solid var(--bg4);color:var(--text);padding:8px 10px;font-family:'Courier New',monospace;font-size:.78rem;border-radius:2px;outline:none">
+                <option>XMR — Monero</option><option>BTC — Bitcoin</option><option>ETH — Ethereum</option><option>LTC — Litecoin</option>
+              </select>
+            </div>
+            <div class="form-row"><label>Label</label><input type="text" placeholder="e.g. Mining Wallet #2"></div>
+            <div class="form-row"><label>Password (encrypt private key)</label><input type="password" placeholder="Strong passphrase"></div>
+            <div style="background:var(--bg3);border:1px solid var(--yellow);border-radius:2px;padding:10px 12px;font-size:.65rem;color:var(--yellow);margin-bottom:14px;line-height:1.6">
+              ⚠ Your seed phrase will be shown once. Write it down and store it safely. UMP does not store your keys.
+            </div>
+            <button class="btn btn-start">⊕ GENERATE WALLET</button>
+          </div>
+        </div>
+
+        <!-- Security -->
+        <div class="wpage" id="wp-security">
+          <div class="sec-item">
+            <div class="sec-icon">🔑</div>
+            <div class="sec-detail">
+              <div class="sec-name">2FA Authentication</div>
+              <div class="sec-info">Protect wallet operations with time-based one-time passwords (TOTP).</div>
+            </div>
+            <div class="sec-status"><span class="badge-ok">ENABLED</span></div>
+          </div>
+          <div class="sec-item">
+            <div class="sec-icon">🔒</div>
+            <div class="sec-detail">
+              <div class="sec-name">Private Key Encryption</div>
+              <div class="sec-info">Keys are encrypted with AES-256 using your passphrase.</div>
+            </div>
+            <div class="sec-status"><span class="badge-ok">ACTIVE</span></div>
+          </div>
+          <div class="sec-item">
+            <div class="sec-icon">⚡</div>
+            <div class="sec-detail">
+              <div class="sec-name">Wallet Enforcer</div>
+              <div class="sec-info">Monitors transactions and enforces whitelist rules. v5.2 feature.</div>
+            </div>
+            <div class="sec-status"><span class="badge-ok">RUNNING</span></div>
+          </div>
+          <div class="sec-item">
+            <div class="sec-icon">📋</div>
+            <div class="sec-detail">
+              <div class="sec-name">Backup Phrase</div>
+              <div class="sec-info">12/24 word seed phrase. Store offline in multiple secure locations.</div>
+            </div>
+            <div class="sec-status"><span class="badge-warn">BACKUP!</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══ STATE ══════════════════════════════════════════════════════
+var _activePanel = null;
+var _sidebarCollapsed = false;
+var _activeAlgo = 'RANDOMX';
+var _currSection = 0;
+var _hrs = [2100,2300,2500,2650,2700,2820,2847];
+var _prices = {BTC:61240.5,XMR:195.3,ETH:1626.4,LTC:82.4,DOGE:0.124,RVN:0.031};
+
+// ══ TICKER ═════════════════════════════════════════════════════
+(function buildTicker(){
+  var coins = [
+    {sym:'BTC',p:61240.50,c:+2.1},{sym:'XMR',p:195.30,c:+0.8},
+    {sym:'ETH',p:1626.40,c:-0.4},{sym:'LTC',p:82.40,c:+1.2},
+    {sym:'DOGE',p:0.1241,c:+3.4},{sym:'RVN',p:0.0312,c:-1.1},
+    {sym:'DASH',p:28.70,c:+0.5},{sym:'ERG',p:1.84,c:+4.2},
+  ];
+  var arr = coins.concat(coins); // double for seamless loop
+  var html = arr.map(function(c){
+    var sign = c.c >= 0 ? '+' : '';
+    var cls  = c.c >= 0 ? 'tick-up' : 'tick-dn';
+    return '<div class="tick"><span class="tick-sym">'+c.sym+'</span>'
+         + '<span class="tick-price">$'+c.p.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:4})+'</span>'
+         + '<span class="'+cls+'">'+sign+c.c+'%</span></div>';
+  }).join('');
+  document.getElementById('ticker').innerHTML = html;
+})();
+
+// ══ SIDEBAR ════════════════════════════════════════════════════
+function toggleSidebar(){
+  _sidebarCollapsed = !_sidebarCollapsed;
+  var sb = document.getElementById('sidebar');
+  var btn = document.getElementById('collapseBtn');
+  sb.classList.toggle('collapsed', _sidebarCollapsed);
+  btn.textContent = _sidebarCollapsed ? '▶' : '◀';
+}
+
+// ══ PANEL NAVIGATION ═══════════════════════════════════════════
+function showHome(){
+  setActiveNav('nav-home', false);
+  if(_activePanel){
+    var old = document.getElementById('panel-'+_activePanel);
+    if(old){ old.classList.remove('active'); old.classList.add('slide-left'); setTimeout(function(){ old.classList.remove('slide-left'); }, 350); }
+    _activePanel = null;
+  }
+  document.getElementById('panel-home').classList.add('active');
+}
+
+function openPanel(name){
+  // Toggle: pressing active panel button closes it
+  if(_activePanel === name){
+    closePanel(name);
+    return;
+  }
+  // Mark old panel as sliding left
+  if(_activePanel){
+    var old = document.getElementById('panel-'+_activePanel);
+    if(old){ old.classList.remove('active'); old.classList.add('slide-left'); setTimeout(function(){ old.classList.remove('slide-left'); }, 350); }
+    setNavPanelOpen('nav-'+_activePanel, false);
+  } else {
+    // Hide home
+    var home = document.getElementById('panel-home');
+    home.classList.remove('active');
+    home.classList.add('slide-left');
+    setTimeout(function(){ home.classList.remove('slide-left'); }, 350);
+    setActiveNav('nav-home', false);
+  }
+  _activePanel = name;
+  var panel = document.getElementById('panel-'+name);
+  panel.classList.add('active');
+  setNavPanelOpen('nav-'+name, true);
+}
+
+function closePanel(name){
+  var panel = document.getElementById('panel-'+name);
+  panel.classList.remove('active');
+  _activePanel = null;
+  setNavPanelOpen('nav-'+name, false);
+  // Restore home
+  setActiveNav('nav-home', true);
+  document.getElementById('panel-home').classList.add('active');
+}
+
+function setActiveNav(id, on){
+  var el = document.getElementById(id);
+  if(!el) return;
+  el.classList.toggle('active', on);
+}
+function setNavPanelOpen(id, on){
+  var el = document.getElementById(id);
+  if(!el) return;
+  el.classList.toggle('panel-open', on);
+  el.classList.toggle('active', on);
+}
+
+// ══ SETUP SECTIONS ═════════════════════════════════════════════
+function goSection(n){
+  var old = document.getElementById('sec'+_currSection);
+  var stab = document.getElementById('stab'+_currSection);
+  if(old) old.classList.remove('active');
+  if(stab) stab.classList.remove('active');
+  _currSection = n;
+  var nw = document.getElementById('sec'+n);
+  var ntab = document.getElementById('stab'+n);
+  if(nw) nw.classList.add('active');
+  if(ntab) ntab.classList.add('active');
+}
+
+// ══ WALLET TABS ════════════════════════════════════════════════
+function showWTab(name){
+  var tabs = document.querySelectorAll('.wtab');
+  var pages = document.querySelectorAll('.wpage');
+  tabs.forEach(function(t){ t.classList.remove('active'); });
+  pages.forEach(function(p){ p.classList.remove('active'); });
+  // find matching tab by onclick
+  tabs.forEach(function(t){
+    if(t.getAttribute('onclick') && t.getAttribute('onclick').indexOf("'"+name+"'") >= 0)
+      t.classList.add('active');
+  });
+  var pg = document.getElementById('wp-'+name);
+  if(pg) pg.classList.add('active');
+}
+
+// ══ ALGO SWITCH ════════════════════════════════════════════════
+function switchAlgo(key){
+  if(key === _activeAlgo) return;
+  // clear old
+  document.querySelectorAll('.algo-btn').forEach(function(b){
+    b.className = 'algo-btn';
+  });
+  _activeAlgo = key;
+  var btn = document.getElementById('algoBtn_'+key);
+  if(btn){
+    if(key==='RANDOMX') btn.classList.add('active-randomx');
+    else if(key==='X11') btn.classList.add('active-x11');
+    else btn.style.borderColor='var(--yellow)';
+  }
+  document.getElementById('algoActive').textContent = key;
+  toast('Algo switched to '+key);
+}
+
+// ══ MINER CONTROLS ═════════════════════════════════════════════
+function mineStart(){
+  var t = document.getElementById('thr').value || 4;
+  document.getElementById('cStat').textContent = 'Starting on '+t+' threads...';
+  document.getElementById('sDot').className = 'dot active';
+  document.getElementById('sLabel').textContent = 'MINING';
+  document.getElementById('sLabel').style.color = 'var(--green)';
+  toast('Miner started — '+t+' threads');
+}
+function mineStop(){
+  document.getElementById('cStat').textContent = 'Miner stopped';
+  document.getElementById('sDot').className = 'dot';
+  document.getElementById('sLabel').textContent = 'IDLE';
+  document.getElementById('sLabel').style.color = 'var(--dim)';
+  toast('Miner stopped');
+}
+
+// ══ SWARM ══════════════════════════════════════════════════════
+function swarmStart(){
+  document.getElementById('swarmStat').textContent = 'Spawning nodes...';
+  document.getElementById('btnSwarmStart').style.display='none';
+  document.getElementById('btnSwarmStop').style.display='inline-block';
+  var n = 0, total = 4;
+  document.getElementById('sw-nodes').textContent = total;
+  var iv = setInterval(function(){
+    n++;
+    document.getElementById('sw-active').textContent = n;
+    document.getElementById('sw-hash').textContent = (n * 712) + ' H/s';
+    document.getElementById('nodeBar').style.width = (n/total*100)+'%';
+    document.getElementById('nodeCountLabel').textContent = n+' / '+total+' nodes spawned';
+    document.getElementById('swarmCount').textContent = n+' / '+total;
+    if(n>=total){
+      clearInterval(iv);
+      document.getElementById('swarmStat').textContent = total+' nodes active';
+      document.getElementById('sw-eff').textContent = '98%';
+    }
+  }, 600);
+  toast('Swarm starting…');
+}
+function swarmStop(){
+  document.getElementById('swarmStat').textContent = 'Swarm idle';
+  document.getElementById('btnSwarmStart').style.display='inline-block';
+  document.getElementById('btnSwarmStop').style.display='none';
+  document.getElementById('sw-active').textContent='0';
+  document.getElementById('sw-hash').textContent='0';
+  document.getElementById('sw-eff').textContent='—';
+  document.getElementById('nodeBar').style.width='0';
+  document.getElementById('swarmCount').textContent='0 / 0';
+  toast('Swarm stopped');
+}
+
+// ══ PROFILE SWITCH ═════════════════════════════════════════════
+function switchProfile(v){
+  var map = {
+    xmr_default:{coin:'XMR',pool:'MoneroOcean'},
+    btc_antpool:{coin:'BTC',pool:'Antpool'},
+    eth_ethermine:{coin:'ETH',pool:'Ethermine'}
+  };
+  var m = map[v];
+  if(m){
+    document.getElementById('activeCoin').textContent = m.coin;
+    document.getElementById('activePool').textContent = m.pool;
+    document.getElementById('sCoin').textContent = m.coin;
+    document.getElementById('sPool').textContent = m.pool;
+    toast('Profile switched → '+v);
+  }
+}
+
+// ══ SAVE PROFILE ═══════════════════════════════════════════════
+function saveProfile(){
+  toast('Profile saved ✓');
+  closePanel('setup');
+}
+
+// ══ CHART ══════════════════════════════════════════════════════
+function drawChart(canvasId, data, color){
+  var c = document.getElementById(canvasId);
+  if(!c) return;
+  var ctx = c.getContext('2d');
+  var w = c.clientWidth, h = c.clientHeight;
+  c.width = w; c.height = h;
+  if(data.length < 2) return;
+  var mx = Math.max.apply(null,data)*1.1||1, mn = 0, rng = mx-mn||1;
+  ctx.clearRect(0,0,w,h);
+  // grid lines
+  ctx.strokeStyle='#1a1a1a'; ctx.lineWidth=1;
+  for(var i=0;i<4;i++){ ctx.beginPath(); var y=h-((i/3)*h*0.88)-h*0.06; ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+  // gradient fill
+  var grd = ctx.createLinearGradient(0,0,0,h);
+  grd.addColorStop(0, color.replace(')',',0.25)').replace('rgb','rgba'));
+  grd.addColorStop(1, color.replace(')',',0)').replace('rgb','rgba'));
+  ctx.beginPath();
+  data.forEach(function(v,i){
+    var x=(i/(data.length-1))*w, y=h-((v-mn)/rng)*h*0.88-h*0.06;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.closePath();
+  ctx.fillStyle=grd; ctx.fill();
+  // line
+  ctx.beginPath();
+  data.forEach(function(v,i){
+    var x=(i/(data.length-1))*w, y=h-((v-mn)/rng)*h*0.88-h*0.06;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle=color; ctx.lineWidth=2; ctx.shadowColor=color; ctx.shadowBlur=6; ctx.stroke();
+  ctx.shadowBlur=0;
+}
+
+function clearLog(){ document.getElementById('logPre').innerHTML = '['+new Date().toLocaleTimeString()+'] Log cleared'; }
+
+// ══ TOAST ══════════════════════════════════════════════════════
+var _toastTimer;
+function toast(msg){
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.style.display='block';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(function(){ t.style.display='none'; }, 2400);
+}
+
+// ══ LIVE SIMULATION ════════════════════════════════════════════
+setInterval(function(){
+  _hrs.push(2700 + Math.random()*300);
+  if(_hrs.length > 30) _hrs.shift();
+  var cur = _hrs[_hrs.length-1];
+  document.getElementById('cHash').textContent = Math.round(cur).toLocaleString()+' H/s';
+  drawChart('hrC', _hrs, '#00e676');
+  // earnings sim
+  var earnData = _hrs.map(function(h){ return h * 0.0000014; });
+  drawChart('earnC', earnData, '#FFD600');
+}, 1800);
+
+// ══ INIT ═══════════════════════════════════════════════════════
+window.addEventListener('load', function(){
+  drawChart('hrC', _hrs, '#00e676');
+  var earnData = _hrs.map(function(h){ return h * 0.0000014; });
+  drawChart('earnC', earnData, '#FFD600');
+});
+window.addEventListener('resize', function(){
+  drawChart('hrC', _hrs, '#00e676');
+});
+</script>
+</body>
+</html>
