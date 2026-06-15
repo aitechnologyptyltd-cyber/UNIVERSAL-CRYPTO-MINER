@@ -1,0 +1,8 @@
+rm -rf /home/userland/UMP_MERGED_FINAL_v4_WALLET_ENFORCED
+cp /sdcard/Download/UMP_MERGED_FINAL_v6_FIXED.zip /home/userland/
+cd /home/userland
+unzip UMP_MERGED_FINAL_v6_FIXED.zip
+cd UMP_MERGED_FINAL_v4_WALLET_ENFORCED/ump_fixed_patched
+bash install_universal_miner.sh
+bash install_ump_universal.sh
+bash start_screen.sh
